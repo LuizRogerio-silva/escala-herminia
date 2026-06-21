@@ -551,6 +551,12 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 
 /* ── PARSEROWS ─────────────────────────────────────────── */
 function parseRows(rows, sourceName) {
+  const nomeVazio = v => {
+    const valor = String(v ?? '').trim().toUpperCase();
+    return !valor || valor === '?' || valor === '#N/A' ||
+           valor === 'UNDEFINED' || valor === 'NONE';
+  };
+
   const byMonth = {};
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
@@ -572,7 +578,12 @@ function parseRows(rows, sourceName) {
       else if (dow===0) { if(!m.domingos.includes(dateStr)) m.domingos.push(dateStr); }
       else              { if(!m.outros.includes(dateStr))   m.outros.push(dateStr); }
     }
-    m.byDate[dateStr][trabalho] = ninfa;
+    // A planilha pode trazer o mesmo trabalho mais de uma vez na mesma data.
+    // Não deixa uma linha de modelo com "?" apagar um nome já preenchido.
+    const atual = m.byDate[dateStr][trabalho];
+    if (nomeVazio(atual) || !nomeVazio(ninfa)) {
+      m.byDate[dateStr][trabalho] = ninfa;
+    }
   }
   for (const m of Object.values(byMonth)) {
     m.quartas.sort(); m.sabados.sort(); m.domingos.sort(); m.outros.sort();
