@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -678,7 +678,7 @@ function salvarConfig() {}
 /* ========================================================
    MODO ADMIN — INSERIR DIRETO NA ESCALA
    ======================================================== */
-function toggleAdmin() {
+async function toggleAdmin() {
   if (ADMIN_MODE) {
     ADMIN_MODE = false;
     localStorage.removeItem(ADMIN_KEY);
@@ -689,10 +689,37 @@ function toggleAdmin() {
 
   const senha = prompt('Senha do administrador:');
   if (!senha) return;
-  localStorage.setItem(ADMIN_KEY, senha.trim());
-  ADMIN_MODE = true;
-  atualizarBotaoAdmin();
-  if (document.getElementById('monthSelect').value) renderMes(document.getElementById('monthSelect').value);
+
+  try {
+    setStatus('🔐 Validando senha...');
+    await validarSenhaAdmin(senha.trim());
+    localStorage.setItem(ADMIN_KEY, senha.trim());
+    ADMIN_MODE = true;
+    atualizarBotaoAdmin();
+    if (document.getElementById('monthSelect').value) renderMes(document.getElementById('monthSelect').value);
+    setStatus('✅ Admin liberado');
+  } catch (err) {
+    localStorage.removeItem(ADMIN_KEY);
+    ADMIN_MODE = false;
+    atualizarBotaoAdmin();
+    alert('Senha de administrador inválida ou não foi possível validar.\n\n' + err.message);
+    setStatus('⚠️ Admin não liberado');
+  }
+}
+
+async function validarSenhaAdmin(token) {
+  const resp = await fetch(getGasUrl(), {
+    method: 'POST',
+    headers: {'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({
+      action: 'validarAdmin',
+      token
+    })
+  });
+  if (!resp.ok) throw new Error('Erro HTTP ' + resp.status);
+  const json = await resp.json();
+  if (!json.ok) throw new Error(json.erro || 'Senha inválida.');
+  return true;
 }
 
 function atualizarBotaoAdmin() {
